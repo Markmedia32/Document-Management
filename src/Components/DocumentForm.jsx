@@ -527,7 +527,7 @@ const handleSubmit = (e) => {
           <td>
 
             <button onClick={() => setExpandedClientId(item.id)}>View </button>
-            <button onClick={() => handleStatusTracking(item.id)}>Document Stage</button>
+            <button onClick={() => handleStatusTracking(item.id)}> Submisision Stage</button>
           </td>
         </tr>
 
