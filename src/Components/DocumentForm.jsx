@@ -1,16 +1,15 @@
 import React, { useEffect, useState } from "react";
-import { HashRouter as Router, Routes, Route } from 'react-router-dom';
-import "/src/index.css";
+import './index.css';
 
 function DocumentForm() {
   // form state
   const [formData, setFormData] = useState({ 
-    ownerName: "", 
+    name: "", 
     phone: "", 
-    idNumber: "", 
+    id_number: "", 
     service: "", 
-    serviceType: "", 
-    comments: "" 
+    service_type: "", 
+    comment: "" 
   });
 
 
@@ -21,30 +20,17 @@ function DocumentForm() {
   });
 
    const [searchTerm, setSearchTerm] = useState('');
-   const [searchQuery, setSearchQuery] = useState('');
-   const [checklistStatuses, setChecklistStatuses] = useState(() => {
-    const saved = localStorage.getItem("checklistStatuses");
-
-    return saved ? JSON.parse(saved) : {};
-  });
-
-  useEffect(() => {
-    localStorage.setItem("checklistStatuses", JSON.stringify(checklistStatuses));
-  }, [checklistStatuses]);
-
-
-
    
    // Filter submissions by search term
   const filteredSubmissions = submissions.filter((item) =>
-    item.ownerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    item.serialNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    item.idNumber.toLowerCase().includes(searchQuery.toLowerCase()) 
+    item.ownerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    item.serialNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    item.idNumber.toLowerCase().includes(searchTerm.toLowerCase()) 
   );
 
   useEffect(() => {
   if (searchTerm.trim() === '') {
-    setSearchQuery('');
+    setSearchTerm('');
   }
 }, [searchTerm]);
 
@@ -53,7 +39,6 @@ function DocumentForm() {
   }, [submissions]);
 
 
-  const [selectedClient, setSelectedClient] = useState(null);
   const [expandedClientId, setExpandedClientId] = useState(null);
 
 
@@ -345,71 +330,75 @@ function DocumentForm() {
     },
   };
 
- 
   // Handle form submission
-const handleSubmit = (e) => {
+const handleSubmit = async (e) => {
   e.preventDefault();
+  alert("Form submitted!");
+  console.log("About to send fetch");
 
-  // Generate a unique Serial Number
   const serialNumber = `SER-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-
-  // Create a new submission with Serial Number
-  const newSubmission = {
-    id: Date.now(), // or a GUID/UUID
-    ownerName: formData.ownerName,
+  const submission = {
+    name: formData.name,
     phone: formData.phone,
-    idNumber: formData.idNumber,
+    id_number: formData.id_number,
     service: formData.service,
-    serviceType: formData.serviceType,
-    comments: formData.comments,
-    serialNumber, 
+    service_type: formData.service_type,
+    comment: formData.comment,
+    serial_number: serialNumber
   };
 
-  // Add the new submission to state
-  setSubmissions((prev) => [...prev, newSubmission]);
-
-  // Initialize its checklist with Submitted = true
-  setChecklistStatuses((prev) => ({
-    ...prev,
-    [newSubmission.id]: { Submitted: true },
-  }));
-
-
-  // Reset form
-  setFormData({ ownerName: "", phone: "", idNumber: "", service: "", serviceType: "", comments: '' });
-
-  alert("Form submitted!");
+  try {
+    console.log("Sending to backend:", submission);
+    const response = await fetch("/api/submit.php", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(submission),
+    });
+    console.log("Fetch sent");
+    const result = await response.json();
+    console.log("Backend response:", result);
+    if (result.success) {
+      alert("Form submitted to database!");
+      setFormData({
+        name: "",
+        phone: "",
+        id_number: "",
+        service: "",
+        service_type: "",
+        comment: ""
+      });
+      // Do NOT add to submissions state or localStorage
+    } else {
+      alert("Submission failed: " + result.message);
+    }
+  } catch (err) {
+    alert("Error submitting form. Please try again.");
+    console.error("Fetch error:", err);
+  }
 };
 
 
-// Handle checklist change
-const handleChecklistChange = (itemId, itemName, isChecked) => {
-  setChecklistStatuses((prev) => ({
-    ...prev,
-    [itemId]: {
-      ...(prev[itemId] || {}),
-      [itemName]: isChecked,
-    },
-  }));
-};
 
   return (
     <div className="document-form-container">
       {/* The form itself */}
       <form className="document-form" onSubmit={handleSubmit}>
         <div className="heading">
-          <h2>Document Management / Checklist</h2>
+                 <h2>DOCUMENT FORM TEST - MAJOR CHANGE</h2>
+        <p style={{color: 'red', fontWeight: 'bold', fontSize: '2rem'}}>THIS IS A TEST CHANGE - If you see this, your code is updating!</p>
         </div>
 
         {/* Name */}
-        <label htmlFor="ownerName">Client's Name</label>
+        <label htmlFor="name">Name</label>
         <input
-          id="ownerName"
-          name="ownerName"
+          id="name"
+          name="name"
           type="text"
-          value={formData.ownerName}
+          value={formData.name}
           onChange={(e) =>
-            setFormData({ ...formData, ownerName: e.target.value })
+            setFormData({ ...formData, name: e.target.value })
           }
           required
         />
@@ -428,14 +417,14 @@ const handleChecklistChange = (itemId, itemName, isChecked) => {
         />
 
         {/* ID Number */}
-        <label htmlFor="idNumber">Client's ID Number</label>
+        <label htmlFor="id_number">Client's ID Number</label>
         <input
-          id="idNumber"
-          name="idNumber"
+          id="id_number"
+          name="id_number"
           type="text"
-          value={formData.idNumber}
+          value={formData.id_number}
           onChange={(e) =>
-            setFormData({ ...formData, idNumber: e.target.value })
+            setFormData({ ...formData, id_number: e.target.value })
           }
           required
         />
@@ -447,7 +436,7 @@ const handleChecklistChange = (itemId, itemName, isChecked) => {
           name="service"
           value={formData.service}
           onChange={(e) =>
-            setFormData({ ...formData, service: e.target.value, serviceType: '' })
+            setFormData({ ...formData, service: e.target.value, service_type: '' })
           }
           required
         >
@@ -463,13 +452,13 @@ const handleChecklistChange = (itemId, itemName, isChecked) => {
         {formData.service &&
           services[formData.service]?.types && (
             <>
-              <label htmlFor="serviceType">Select Type</label>
+              <label htmlFor="service_type">Select Type</label>
               <select
-                id="serviceType"
-                name="serviceType"
-                value={formData.serviceType}
+                id="service_type"
+                name="service_type"
+                value={formData.service_type}
                 onChange={(e) =>
-                    setFormData({ ...formData, serviceType: e.target.value })
+                    setFormData({ ...formData, service_type: e.target.value })
                 }
                 required
               >
@@ -483,38 +472,37 @@ const handleChecklistChange = (itemId, itemName, isChecked) => {
             </>
           )}
 
-        {/* Checklist */}
-        {formData.service &&
-          formData.serviceType &&
-          services[formData.service].types[formData.serviceType]?.checklist.length > 0 && (
-            <ul className="checklist">
-              <h4>Please make sure you have the following documents:</h4>
-              {services[formData.service].types[formData.serviceType].checklist.map((item, index) => (
-                <li key={index}>
-                    <input
-                    id={`${formData.serviceType}_${index}`}
-                    type="checkbox"
-                    name={`${formData.serviceType}_${index}`}
-                    />
-                    <label htmlFor={`${formData.serviceType}_${index}`}>{item}</label>
-                </li>
-              ))}
-            </ul>
-          )}
-
         {/* Comments */}
-        <label htmlFor="comments">Comments</label>
+        <label htmlFor="comment">Comment</label>
         <textarea
-          id="comments"
-          name="comments"
-          value={formData.comments}
+          id="comment"
+          name="comment"
+          value={formData.comment}
           onChange={(e) =>
-            setFormData({ ...formData, comments: e.target.value })
+            setFormData({ ...formData, comment: e.target.value })
           }
         />
 
         {/* Submit Button */}
         <button type="submit">Submit</button>
+        
+<button type="button" onClick={async () => {
+  const response = await fetch("http://localhost/api.1/submit.php", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      name: "Test",
+      phone: "0712345678",
+      id_number: "12345678",
+      service: "dlRecordUpdates",
+      service_type: "updateRecord",
+      comment: "From test button"
+    })
+  });
+  const result = await response.json();
+  console.log("Dummy result:", result);
+}}>Send Dummy</button>
+<p>Is this showing?</p>
       </form>
 
       
@@ -531,7 +519,7 @@ const handleChecklistChange = (itemId, itemName, isChecked) => {
         onChange={(e) => setSearchTerm(e.target.value)}
         onKeyDown={(e) => {
           if(e.key === "Enter") {
-            setSearchQuery(searchTerm.trim());
+            setSearchTerm(searchTerm.trim());
           }
         }}
         className="search-input"
@@ -558,90 +546,45 @@ const handleChecklistChange = (itemId, itemName, isChecked) => {
           <td>
 
             <button onClick={() => setExpandedClientId(item.id)}>View </button>
+            <button onClick={() => handleStatusTracking(item.id)}> Submisision Stage</button>
           </td>
         </tr>
 
+        {/* Display details directly under the row if it's selected */}
         {expandedClientId === item.id && (
-  <tr className="client-details-row">
-    <td colSpan="4">
-      <div className="client-details">
-        <h3>Client Details</h3>
-        <p><strong>Serial Number:</strong> {item.serialNumber}</p>
-        <p><strong>Name:</strong> {item.ownerName}</p>
-        <p><strong>ID Number:</strong> {item.idNumber}</p>
-        <p><strong>Phone Number:</strong> {item.phone}</p>
-        <p><strong>Service:</strong> {item.service}</p>
-        <p><strong>Service Type:</strong> {item.serviceType}</p>
-        <p><strong>Comments:</strong> {item.comments}</p>
+          <tr className="client-details-row">
+            <td colSpan="3">
+              <div className="client-details">
+                <h3>Client Details</h3>
+                <p><strong>Serial Number:</strong>{item.serialNumber}</p>
+                <p><strong>Name:</strong> {item.ownerName}</p>
+                <p><strong>ID Number:</strong> {item.idNumber}</p>
+                <p><strong>Phone Number:</strong> {item.phone}</p>
+                <p><strong>Service:</strong> {item.service}</p>
+                <p><strong>Service Type:</strong> {item.serviceType}</p>
+                <p><strong>Comments:</strong> {item.comments}</p>
+                <p><strong>Serial Number:</strong> {item.serialNumber}</p> 
 
-        {/* Display checklist if applicable */}
-        {item.service &&
-          item.serviceType &&
-          services[item.service].types[item.serviceType]?.checklist.length > 0 && (
-            <ul className="checklist">
-              <h4>Checked documents:</h4>
-              {services[item.service].types[item.serviceType].checklist.map((item, index) => (
-                <li key={index}>{item}</li>
-              ))}
-            </ul>
-          )}
+                
 
-        {/* Manual Checklist Section */}
-        <h4>Document Stage.</h4>
-        <ul className="manual-checklist">
-          {["Submitted", "In-Review", "Processed", "Collected"].map((itemName) => (
-            <li key={itemName}>
-              <input
-                id={`${item.id}_${itemName}`}
-                type="checkbox"
-                checked={checklistStatuses[item.id]?.[itemName] ||
-                false}
-                onChange={(e) => {
-                    setChecklistStatuses((prev) => ({
-                    ...prev,
-                    [item.id]: {
-                      ...(prev[item.id] || {}),
-                      [itemName]: e.target.checked,
-                    },
-                    }));
-                }}
-              />
-              <label htmlFor={`${item.id}_${itemName}`}>
-                {itemName}
-              </label>
-            </li>
-          ))}
-        </ul> 
+                {/* Display checklist if applicable */}
+                {item.service &&
+                    item.serviceType &&
+                    services[item.service].types[item.serviceType]?.checklist.length > 0 && (
+                    <ul className="checklist">
+                    <h4>Checked documents:</h4>
+                    {services[item.service].types[item.serviceType].checklist.map((checklistItem, index) => (
+                        <li key={`${item.id}-${checklistItem}`}>{checklistItem}</li>
+                    ))}
+                    </ul>
+                )}
 
-<h4>Progress</h4>
-{/*
- Calculate progress first
-*/}
-{(() => {
-  const checklist = checklistStatuses[item.id] || {};
-  const total = 4;
-  const completed = Object.values(checklist).filter((item) => item).length;
-  const progress = (completed / total) * 100;
-
-  return (
-    <div className="progress-bar">
-      <div
-        className="progress-fill"
-        style={{ width: `${progress}%` }}>
-        {Math.round(progress)}%
-      </div>
-    </div>
-  );
-})()}
-
-        {/* Close Button */}
-        <button onClick={() => setExpandedClientId(null)}>Close</button>
-
-      </div>
-    </td>
-  </tr>
-)}
-
+                <button onClick={() => setExpandedClientId(null)}>Close</button>
+              </div>
+              
+            </td>
+          </tr>
+        )}
         
 
       </React.Fragment>
