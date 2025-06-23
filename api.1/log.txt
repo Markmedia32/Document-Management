@@ -1,0 +1,14 @@
+nullnullRAW: 
+DECODED: null
+RAW: 
+DECODED: null
+RAW: {
+  "name": "Test User",
+  "phone": "0712345678",
+  "id_number": "12345678",
+  "service": "dlRecordUpdates",
+  "service_type": "updateRecord",
+  "comment": "This is a test from Postman"
+}
+
+DECODED: {"name":"Test User","phone":"0712345678","id_number":"12345678","service":"dlRecordUpdates","service_type":"updateRecord","comment":"This is a test from Postman"}
