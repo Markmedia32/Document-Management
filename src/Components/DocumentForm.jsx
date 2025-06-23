@@ -22,6 +22,17 @@ function DocumentForm() {
 
    const [searchTerm, setSearchTerm] = useState('');
    const [searchQuery, setSearchQuery] = useState('');
+   const [checklistStatuses, setChecklistStatuses] = useState(() => {
+    const saved = localStorage.getItem("checklistStatuses");
+
+    return saved ? JSON.parse(saved) : {};
+  });
+
+  useEffect(() => {
+    localStorage.setItem("checklistStatuses", JSON.stringify(checklistStatuses));
+  }, [checklistStatuses]);
+
+
 
    
    // Filter submissions by search term
@@ -334,6 +345,7 @@ function DocumentForm() {
     },
   };
 
+ 
   // Handle form submission
 const handleSubmit = (e) => {
   e.preventDefault();
@@ -353,7 +365,15 @@ const handleSubmit = (e) => {
     serialNumber, 
   };
 
+  // Add the new submission to state
   setSubmissions((prev) => [...prev, newSubmission]);
+
+  // Initialize its checklist with Submitted = true
+  setChecklistStatuses((prev) => ({
+    ...prev,
+    [newSubmission.id]: { Submitted: true },
+  }));
+
 
   // Reset form
   setFormData({ ownerName: "", phone: "", idNumber: "", service: "", serviceType: "", comments: '' });
@@ -361,6 +381,17 @@ const handleSubmit = (e) => {
   alert("Form submitted!");
 };
 
+
+// Handle checklist change
+const handleChecklistChange = (itemId, itemName, isChecked) => {
+  setChecklistStatuses((prev) => ({
+    ...prev,
+    [itemId]: {
+      ...(prev[itemId] || {}),
+      [itemName]: isChecked,
+    },
+  }));
+};
 
   return (
     <div className="document-form-container">
@@ -527,45 +558,90 @@ const handleSubmit = (e) => {
           <td>
 
             <button onClick={() => setExpandedClientId(item.id)}>View </button>
-            <button onClick={() => handleStatusTracking(item.id)}> Submisision Stage</button>
           </td>
         </tr>
 
-        {/* Display details directly under the row if it's selected */}
         {expandedClientId === item.id && (
-          <tr className="client-details-row">
-            <td colSpan="3">
-              <div className="client-details">
-                <h3>Client Details</h3>
-                <p><strong>Serial Number:</strong>{item.serialNumber}</p>
-                <p><strong>Name:</strong> {item.ownerName}</p>
-                <p><strong>ID Number:</strong> {item.idNumber}</p>
-                <p><strong>Phone Number:</strong> {item.phone}</p>
-                <p><strong>Service:</strong> {item.service}</p>
-                <p><strong>Service Type:</strong> {item.serviceType}</p>
-                <p><strong>Comments:</strong> {item.comments}</p>
-                <p><strong>Serial Number:</strong> {item.serialNumber}</p> 
+  <tr className="client-details-row">
+    <td colSpan="4">
+      <div className="client-details">
+        <h3>Client Details</h3>
+        <p><strong>Serial Number:</strong> {item.serialNumber}</p>
+        <p><strong>Name:</strong> {item.ownerName}</p>
+        <p><strong>ID Number:</strong> {item.idNumber}</p>
+        <p><strong>Phone Number:</strong> {item.phone}</p>
+        <p><strong>Service:</strong> {item.service}</p>
+        <p><strong>Service Type:</strong> {item.serviceType}</p>
+        <p><strong>Comments:</strong> {item.comments}</p>
 
-                
+        {/* Display checklist if applicable */}
+        {item.service &&
+          item.serviceType &&
+          services[item.service].types[item.serviceType]?.checklist.length > 0 && (
+            <ul className="checklist">
+              <h4>Checked documents:</h4>
+              {services[item.service].types[item.serviceType].checklist.map((item, index) => (
+                <li key={index}>{item}</li>
+              ))}
+            </ul>
+          )}
 
-                {/* Display checklist if applicable */}
-                {item.service &&
-                    item.serviceType &&
-                    services[item.service].types[item.serviceType]?.checklist.length > 0 && (
-                    <ul className="checklist">
-                    <h4>Checked documents:</h4>
-                    {services[item.service].types[item.serviceType].checklist.map((item, index) => (
-                        <li key={index}>{item}</li>
-                    ))}
-                    </ul>
-                )}
+        {/* Manual Checklist Section */}
+        <h4>Document Stage.</h4>
+        <ul className="manual-checklist">
+          {["Submitted", "In-Review", "Processed", "Collected"].map((itemName) => (
+            <li key={itemName}>
+              <input
+                id={`${item.id}_${itemName}`}
+                type="checkbox"
+                checked={checklistStatuses[item.id]?.[itemName] ||
+                false}
+                onChange={(e) => {
+                    setChecklistStatuses((prev) => ({
+                    ...prev,
+                    [item.id]: {
+                      ...(prev[item.id] || {}),
+                      [itemName]: e.target.checked,
+                    },
+                    }));
+                }}
+              />
+              <label htmlFor={`${item.id}_${itemName}`}>
+                {itemName}
+              </label>
+            </li>
+          ))}
+        </ul> 
 
-                <button onClick={() => setExpandedClientId(null)}>Close</button>
-              </div>
-              
-            </td>
-          </tr>
-        )}
+<h4>Progress</h4>
+{/*
+ Calculate progress first
+*/}
+{(() => {
+  const checklist = checklistStatuses[item.id] || {};
+  const total = 4;
+  const completed = Object.values(checklist).filter((item) => item).length;
+  const progress = (completed / total) * 100;
+
+  return (
+    <div className="progress-bar">
+      <div
+        className="progress-fill"
+        style={{ width: `${progress}%` }}>
+        {Math.round(progress)}%
+      </div>
+    </div>
+  );
+})()}
+
+        {/* Close Button */}
+        <button onClick={() => setExpandedClientId(null)}>Close</button>
+
+      </div>
+    </td>
+  </tr>
+)}
+
         
 
       </React.Fragment>
